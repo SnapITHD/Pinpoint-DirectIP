@@ -1,4 +1,4 @@
-module github.com/Pinpoint-DirectIP
+module github.com/SnapITHD/Pinpoint-DirectIP
 
 require (
 	github.com/inconshreveable/log15 v2.16.0+incompatible
