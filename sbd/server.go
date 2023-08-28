@@ -7,8 +7,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/inconshreveable/log15"
 	proxyproto "github.com/pires/go-proxyproto"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -33,13 +33,13 @@ func (f HandlerFunc) Handle(data *InformationBucket) error {
 
 // Logger is a middleware function which wraps a handler with logging
 // capabilities.
-func Logger(log log15.Logger, next Handler) Handler {
+func Logger(log zerolog.Logger, next Handler) Handler {
 	return HandlerFunc(func(data *InformationBucket) error {
 		js, err := json.Marshal(data)
 		if err != nil {
 			return err
 		}
-		log.Info("new data", "elements", string(js))
+		log.Info().Str("elements", string(js)).Msg("new data")
 		return next.Handle(data)
 	})
 }
@@ -57,8 +57,8 @@ func createResult(status byte) *result {
 // NewService starts a listener on the given *address* and dispatches every
 // short burst data packet to the given handler. If the handler returns a
 // non-nil error, the service will send a negative response, otherwise the
-// responsestatus will be ok.
-func NewService(log log15.Logger, address string, h Handler, proxyprotocol bool) error {
+// response status will be ok.
+func NewService(log zerolog.Logger, address string, h Handler, proxyprotocol bool) error {
 	l, err := net.Listen("tcp", address)
 	if err != nil {
 		return fmt.Errorf("cannot open listening address %q: %v", address, err)
@@ -71,35 +71,35 @@ func NewService(log log15.Logger, address string, h Handler, proxyprotocol bool)
 		// Wait for a connection.
 		conn, err := l.Accept()
 		if err != nil {
-			log.Crit("cannot accept", "error", err)
-			// let it crash! it's up to the caller of the prog to restart it
+			log.Fatal().AnErr("error", err).Msg("cannot accept")
+			// let it crash! it's up to the caller of the program to restart it
 			panic(err)
 		}
 
 		go func(c net.Conn) {
-			// directip connects, sends message and closes connection, so no whilte loop is needed
+			// directip connects, sends message and closes connection, so no while loop is needed
 			// to read more than one message from the connection
 			defer c.Close()
 
 			// set a deadline so we do not run out of connections
 			c.SetDeadline(time.Now().Add(deadline))
 
-			log.Info("new connection")
+			log.Info().Msg("new connection")
 			el, err := GetElements(c)
 			res := createResult(0)
 			if err != nil {
-				log.Error("cannot get elements from connection", "error", err)
+				log.Error().AnErr("error", err).Msg("cannot get elements from connection")
 				binary.Write(c, binary.BigEndian, res)
 				return
 			}
-			log.Info("received data", "elements", el)
+			log.Info().Any("elements", el).Msg("received data")
 			err = h.Handle(el)
 			if err != nil {
-				log.Error("error handling message", "error", err)
+				log.Error().AnErr("error", err).Msg("error handling message")
 			} else {
 				res.Status = 1
 			}
-			log.Info("write response", "result", res)
+			log.Info().Any("result", res).Msg("write response")
 			binary.Write(c, binary.BigEndian, res)
 		}(conn)
 	}

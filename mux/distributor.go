@@ -14,12 +14,12 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"regexp"
 
-	"github.com/inconshreveable/log15"
-	"github.com/protegear/sbd"
+	"github.com/SnapITHD/Pinpoint-DirectIP/sbd"
+	"github.com/rs/zerolog"
 )
 
 // A Target stores the configuration of a backend service where the SBD data should be pushed.
@@ -46,7 +46,7 @@ type Distributer interface {
 }
 
 type distributer struct {
-	log15.Logger
+	zerolog.Logger
 	targets       []Target
 	sbdChannel    chan *sbdMessage
 	configChannel chan Targets
@@ -58,7 +58,7 @@ type sbdMessage struct {
 }
 
 // New creates a new Distributor with the given number of workers
-func New(numworkers int, log log15.Logger) Distributer {
+func New(numworkers int, log zerolog.Logger) Distributer {
 	sc := make(chan *sbdMessage)
 	cc := make(chan Targets)
 	s := &distributer{
@@ -110,20 +110,20 @@ func (f *distributer) distribute(data *sbd.InformationBucket) error {
 }
 
 func (f *distributer) Close() {
-	f.Info("close distributor")
+	f.Info().Msg("close distributor")
 	close(f.configChannel)
 	close(f.sbdChannel)
 }
 
 func (f *distributer) run(worker int) {
-	f.Info("start distributor service", "worker", worker)
+	f.Info().Msgf("start distributor service: worker %d", worker)
 	for {
 		select {
 		case cfg, more := <-f.configChannel:
 			if !more {
 				return
 			}
-			f.Info("set config", "config", cfg, "worker", worker)
+			f.Info().Msgf("set config: %v, worker: %d", cfg, worker)
 			f.targets = cfg
 		case msg := <-f.sbdChannel:
 			go f.handle(msg)
@@ -142,7 +142,7 @@ func (f *distributer) handle(m *sbdMessage) {
 		if t.imeipattern.MatchString(imei) {
 			rq, err := http.NewRequest(http.MethodPost, t.Backend, bytes.NewBuffer(js))
 			if err != nil {
-				f.Error("cannot create request", "error", err, "target", t.Backend)
+				f.Error().Str("error", err.Error()).Str("target", t.Backend).Msg("cannot create request")
 				m.returnedError <- err
 				return
 			}
@@ -152,16 +152,16 @@ func (f *distributer) handle(m *sbdMessage) {
 			}
 			rsp, err := t.client.Do(rq)
 			if err != nil {
-				f.Error("cannot call webhook", "target", t.Backend, "error", err)
+				f.Error().Str("target", t.Backend).Str("error", err.Error()).Msg("cannot call webhook")
 				m.returnedError <- err
 				return
 			}
 			defer rsp.Body.Close()
-			content, _ := ioutil.ReadAll(rsp.Body)
+			content, _ := io.ReadAll(rsp.Body)
 			if rsp.StatusCode/100 == 2 {
-				f.Info("data transmitted", "target", t.Backend, "status", rsp.Status, "content", string(content))
+				f.Info().Str("target", t.Backend).Str("status", rsp.Status).Str("content", string(content)).Msg("data transmitted")
 			} else {
-				f.Error("data not transmitted", "target", t.Backend, "status", rsp.Status, "content", string(content))
+				f.Error().Str("target", t.Backend).Str("status", rsp.Status).Str("content", string(content)).Msg("data not transmitted")
 				m.returnedError <- err
 				return
 			}
