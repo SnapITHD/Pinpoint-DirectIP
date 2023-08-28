@@ -1,4 +1,4 @@
-module github.com/protegear/sbd
+module github.com/Pinpoint-DirectIP
 
 require (
 	github.com/inconshreveable/log15 v2.16.0+incompatible
