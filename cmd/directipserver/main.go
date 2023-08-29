@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/SnapITHD/Pinpoint-DirectIP/mux"
-	"github.com/SnapITHD/Pinpoint-DirectIP/sbd"
 	"github.com/rs/zerolog"
 	yaml "gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
@@ -17,6 +15,9 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/SnapITHD/Pinpoint-DirectIP/mux"
+	"github.com/SnapITHD/Pinpoint-DirectIP/sbd"
 )
 
 const (

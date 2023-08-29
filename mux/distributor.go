@@ -20,7 +20,7 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/Pinpoint-DirectIP/sbd"
+	"github.com/SnapITHD/Pinpoint-DirectIP/sbd"
 )
 
 // A Target stores the configuration of a backend service where the SBD data should be pushed.
