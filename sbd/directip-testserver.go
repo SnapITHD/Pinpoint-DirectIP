@@ -21,9 +21,9 @@ func onError(e error) {
 // and parses the incoming directip messages. Set the Handler-Field
 // to implement your wanted behaviour. The default is simply logging.
 type DIPServer struct {
-	address      string
-	listener     net.Listener
-	confirmation confirmationMessage
+	address  string
+	listener net.Listener
+	//confirmation confirmationMessage
 
 	Handle  DIPHandler
 	OnError func(error)
