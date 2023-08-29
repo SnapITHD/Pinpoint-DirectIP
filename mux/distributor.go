@@ -117,14 +117,14 @@ func (f *distributer) Close() {
 }
 
 func (f *distributer) run(worker int) {
-	f.Info().Msgf("start distributor service: worker %d", worker)
+	f.Info().Int("worker", worker).Msg("start distributor service")
 	for {
 		select {
 		case cfg, more := <-f.configChannel:
 			if !more {
 				return
 			}
-			f.Info().Msgf("set config: %v, worker: %d", cfg, worker)
+			f.Info().Any("config", cfg).Int("worker", worker).Msgf("set config")
 			f.targets = cfg
 		case msg := <-f.sbdChannel:
 			go f.handle(msg)

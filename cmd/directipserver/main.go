@@ -47,17 +47,11 @@ func main() {
 
 	log = setLogOutput(*logformat, *loglevel)
 
-	//log = log15.New("stage", *stage)
-	//log := zerolog.New(os.Stdout).With().Timestamp().Logger()
-
-	log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-
 	listen := defaultListen
 	if len(flag.Args()) > 0 {
 		listen = flag.Arg(0)
 	}
-	log.Info().Msgf("start service: revision %s, builddate %s, listen %s ...", revision, builddate, listen)
-	//log.Info("start service", "revision", revision, "builddate", builddate, "listen", listen)
+	log.Info().Str("revision", revision).Str("builddate", builddate).Str("listen", listen).Msg("start service")
 	distribution = mux.New(*workers, log)
 	if *config != "" {
 		cfg, err := os.Open(*config)
